@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🎃 Halloween Date — El Oráculo</title>
+<style>
+  :root{
+    --bg:#0b0710; --card:#15101d; --orange:#ff7518; --purple:#8b5cf6;
+    --text:#fff8f0; --muted:#b9adbd; --line:#2b2134;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; min-height:100vh; color:var(--text);
+    font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:
+      radial-gradient(circle at 20% 10%, #2a1238 0, transparent 32%),
+      radial-gradient(circle at 90% 80%, #3a1607 0, transparent 30%), var(--bg);
+    overflow-x:hidden;
+  }
+  .fog{position:fixed;inset:-20%;pointer-events:none;opacity:.12;
+    background:radial-gradient(ellipse,#fff 0,transparent 55%);
+    filter:blur(50px);animation:float 12s ease-in-out infinite alternate}
+  @keyframes float{to{transform:translate(5%,3%) scale(1.08)}}
+  .wrap{max-width:620px;margin:auto;padding:26px 18px 42px}
+  .screen{display:none;min-height:calc(100vh - 68px);align-items:center;justify-content:center}
+  .screen.active{display:flex}
+  .box{text-align:center;width:100%}
+  .moon{font-size:62px;filter:drop-shadow(0 0 18px #ff7518);animation:pulse 2s infinite}
+  @keyframes pulse{50%{transform:scale(1.05)}}
+  h1{font-size:clamp(34px,10vw,58px);line-height:.95;margin:15px 0 12px;letter-spacing:-2px}
+  h2{font-size:28px;margin:0 0 9px}
+  p{color:var(--muted);line-height:1.5;margin:0 auto 22px}
+  .subtitle{max-width:460px}
+  button{
+    width:100%;border:1px solid var(--line);border-radius:18px;background:var(--card);
+    color:var(--text);padding:18px 16px;margin:7px 0;font-size:17px;text-align:left;
+    cursor:pointer;transition:.18s;box-shadow:0 8px 25px #0003;
+  }
+  button:hover,button:active{transform:translateY(-2px);border-color:var(--orange);background:#201526}
+  .primary{
+    text-align:center;background:linear-gradient(135deg,var(--orange),#ff9f43);
+    color:#160b05;border:0;font-weight:800;font-size:18px;margin-top:12px;
+  }
+  .option span{font-size:27px;margin-right:10px;vertical-align:middle}
+  .progress{height:5px;background:#241b2b;border-radius:99px;margin-bottom:30px;overflow:hidden}
+  .bar{height:100%;width:0;background:linear-gradient(90deg,var(--orange),var(--purple));transition:.3s}
+  .question{text-align:center}
+  .question .eyebrow{color:var(--orange);font-size:13px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:9px}
+  .result-card{
+    background:#15101dcc;border:1px solid #3b2b45;border-radius:25px;padding:24px;
+    text-align:left;box-shadow:0 15px 45px #0006;margin:22px 0;
+  }
+  .result-row{display:flex;gap:14px;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--line)}
+  .result-row:last-child{border-bottom:0}
+  .result-icon{font-size:28px}
+  .result-row strong{display:block;margin-bottom:3px}
+  .result-row small{color:var(--muted)}
+  .couple-results{text-align:left}
+  .couple-results li{margin:10px 0;color:#eee}
+  .tiny{font-size:12px;color:#817487;margin-top:15px}
+  .shake{animation:shake .35s}
+  @keyframes shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+</style>
+</head>
+<body>
+<div class="fog"></div>
+<div class="wrap">
+
+  <section id="intro" class="screen active">
+    <div class="box">
+      <div class="moon">🎃</div>
+      <h1>EL ORÁCULO<br>DE HALLOWEEN</h1>
+      <p class="subtitle">Una cita. Dos personas. Cero garantías de que alguien duerma con la luz apagada esta noche.</p>
+      <button class="primary" onclick="startQuiz()">Abrir el portal 🕯️</button>
+      <div class="tiny">Cuestionario secreto para Gian 👀</div>
+    </div>
+  </section>
+
+  <section id="quiz" class="screen">
+    <div class="box">
+      <div class="progress"><div id="bar" class="bar"></div></div>
+      <div id="content"></div>
+    </div>
+  </section>
+
+  <section id="result" class="screen">
+    <div class="box">
+      <div class="moon">🔮</div>
+      <h2>EL ORÁCULO HA HABLADO</h2>
+      <p>La cita ha sido invocada. No aceptamos reclamaciones. 🎃</p>
+      <div id="resultCard" class="result-card"></div>
+      <div class="couple-results">
+        <h3>🖤 Veredicto de pareja</h3>
+        <ul id="coupleResults"></ul>
+      </div>
+      <button class="primary" onclick="restart()">Volver a invocar 🎃</button>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const questions = [
+  {
+    key:"terror", eyebrow:"I · El nivel de peligro", title:"Primera decisión… ¿cuánto miedo estás dispuesto a soportar?",
+    options:[
+      ["👻","Suave","Quiero Halloween, no terapia."],
+      ["😈","Medio","Que dé miedo, pero que podamos dormir."],
+      ["🔪","Intenso","Quiero tensión, sustos y arrepentimiento."],
+      ["💀","Sin piedad","Quiero mirar a mi pareja y preguntarle por qué aceptamos esto."]
+    ]
+  },
+  {
+    key:"food", eyebrow:"II · El sacrificio", title:"Elige qué alimentará a las criaturas de esta casa:",
+    options:[
+      ["🍕","Pizza","Clásico, glorioso y cero discusiones."],
+      ["🫓","Arepas","Porque el terror también puede venir con queso."],
+      ["🍿","Picoteo de Halloween","Muchas cosas pequeñas y cero responsabilidad."]
+    ]
+  },
+  {
+    key:"drink", eyebrow:"III · El brebaje", title:"¿Qué bebida acompañará la invocación?",
+    options:[
+      ["🥤","Refresco","Mantener la cordura es importante."],
+      ["🍹","Cóctel","Una poción digna de la ocasión."],
+      ["🧃","Algo sin alcohol","Paz, amor y supervivencia."],
+      ["🎲","Que lo decida el destino","No quiero asumir responsabilidades."]
+    ]
+  },
+  {
+    key:"survive", eyebrow:"IV · Pregunta de supervivencia", title:"En una película de terror, ¿quién sobreviviría más tiempo?",
+    options:[
+      ["🧠","Yo","Tengo instinto de supervivencia."],
+      ["🫡","Mi pareja","Reconozco sus habilidades de supervivencia."],
+      ["🤝","Los dos","Juntos somos prácticamente invencibles."],
+      ["💀","Ninguno","Seríamos los primeros créditos."]
+    ]
+  },
+  {
+    key:"firstdeath", eyebrow:"V · La traición", title:"¿Quién moriría primero?",
+    options:[
+      ["🙋","Yo","No pienso fingir que soy valiente."],
+      ["👀","Mi pareja","Lo siento, pero alguien tiene que decirlo."],
+      ["🫂","Los dos a la vez","Morimos abrazados. Romántico."],
+      ["🏃","El que diga “voy a mirar qué ha sido eso”","Esa frase nunca acaba bien."]
+    ]
+  },
+  {
+    key:"scared", eyebrow:"VI · Seamos sinceros", title:"¿Quién se asustaría antes?",
+    options:[
+      ["😱","Yo","Un ruido y ya estoy reconsiderando la relación."],
+      ["😂","Mi pareja","Se hace el valiente, pero sabemos la verdad."],
+      ["😱😱","Los dos","Dos cobardes, una manta."],
+      ["😎","Ninguno","Somos de acero. (Probablemente mentira.)"]
+    ]
+  },
+  {
+    key:"haunted", eyebrow:"VII · La casa encantada", title:"Encontráis una puerta que dice “NO ENTRAR”. ¿Quién entra?",
+    options:[
+      ["🚪","Yo","Claramente no aprendí nada de las películas."],
+      ["👻","Mi pareja","La curiosidad acabará con nosotros."],
+      ["🤝","Los dos","Si hay que morir, juntos."],
+      ["🏃","Ninguno","Tenemos sentido común."]
+    ]
+  },
+  {
+    key:"movie", eyebrow:"VIII · El poder", title:"¿Quién debería tener el mando del mando a distancia?",
+    options:[
+      ["🎬","Yo","Mi criterio cinematográfico es superior."],
+      ["🍿","Mi pareja","Hoy manda el otro."],
+      ["🤝","50/50","Democracia incluso en Halloween."],
+      ["🔮","El oráculo","Después de este cuestionario, decide el destino."]
+    ]
+  }
+];
+
+let step=0, answers={};
+
+function startQuiz(){
+  document.getElementById("intro").classList.remove("active");
+  document.getElementById("quiz").classList.add("active");
+  render();
+}
+function render(){
+  const q=questions[step];
+  document.getElementById("bar").style.width=(step/questions.length*100)+"%";
+  const content=document.getElementById("content");
+  content.innerHTML=`
+    <div class="question">
+      <div class="eyebrow">${q.eyebrow}</div>
+      <h2>${q.title}</h2>
+      <p>Elige sabiamente… el oráculo recuerda todo. 👁️</p>
+      ${q.options.map((o,i)=>`
+        <button class="option" onclick="answer('${q.key}',${i})">
+          <span>${o[0]}</span><b>${o[1]}</b><br>
+          <small style="color:#9d91a3;margin-left:42px">${o[2]}</small>
+        </button>`).join("")}
+    </div>`;
+}
+function answer(key,index){
+  answers[key]=index;
+  step++;
+  if(step>=questions.length){showResult();} else render();
+}
+function showResult(){
+  document.getElementById("quiz").classList.remove("active");
+  document.getElementById("result").classList.add("active");
+  const get=(key)=>questions.find(q=>q.key===key).options[answers[key]];
+
+  const terror=get("terror"), food=get("food"), drink=get("drink");
+  document.getElementById("resultCard").innerHTML=`
+    <div class="result-row"><div class="result-icon">${terror[0]}</div><div><strong>Terror: ${terror[1]}</strong><small>${terror[2]}</small></div></div>
+    <div class="result-row"><div class="result-icon">${food[0]}</div><div><strong>Cena: ${food[1]}</strong><small>${food[2]}</small></div></div>
+    <div class="result-row"><div class="result-icon">${drink[0]}</div><div><strong>Bebida: ${drink[1]}</strong><small>${drink[2]}</small></div></div>
+    <div class="result-row"><div class="result-icon">🎬</div><div><strong>Película</strong><small>Elegid una que encaje con el nivel de terror. El oráculo no se responsabiliza de los gritos.</small></div></div>
+  `;
+
+  const labels={
+    survive:["Tú","Tu pareja","Los dos","Ninguno"],
+    firstdeath:["Tú","Tu pareja","Los dos","El que diga “voy a mirar qué ha sido eso”"],
+    scared:["Tú","Tu pareja","Los dos","Ninguno"],
+    haunted:["Tú","Tu pareja","Los dos","Ninguno"],
+    movie:["Tú","Tu pareja","50/50","El oráculo"]
+  };
+  const list=document.getElementById("coupleResults");
+  list.innerHTML=[
+    `🧟 <b>Supervivencia:</b> ${labels.survive[answers.survive]}`,
+    `💀 <b>Primera víctima:</b> ${labels.firstdeath[answers.firstdeath]}`,
+    `😱 <b>Primer susto:</b> ${labels.scared[answers.scared]}`,
+    `🚪 <b>Quién entra en la casa encantada:</b> ${labels.haunted[answers.haunted]}`,
+    `🎬 <b>Quién manda con la película:</b> ${labels.movie[answers.movie]}`
+  ].map(x=>`<li>${x}</li>`).join("");
+}
+function restart(){
+  step=0; answers={};
+  document.getElementById("result").classList.remove("active");
+  document.getElementById("intro").classList.add("active");
+}
+</script>
+</body>
+</html>
